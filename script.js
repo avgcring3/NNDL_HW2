@@ -1,16 +1,31 @@
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBb8ZK4RjyZVwvmqW8IabkGlhUkMG0OE086HWvBx5Ea77YYmvhY4wIi3hX1tmA6YY/exec";
+// script.js (полная версия под JSONP через Google Apps Script)
+// 1) Вставь сюда URL своего Apps Script Web App (/exec)
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz5khqXaYLeTTgxgMRuNErKoLMMrwWWQkbcUzu0uXdcIyTwoKAxvp6rNOoVZTfoKjM/exec";
 
+/** Business logic from the guide */
 function determineBusinessAction(confidence, label) {
   let normalizedScore = 0.5;
   if (label === "POSITIVE") normalizedScore = confidence;
   else if (label === "NEGATIVE") normalizedScore = 1.0 - confidence;
 
   if (normalizedScore <= 0.4) {
-    return { actionCode: "OFFER_COUPON", uiMessage: "We are truly sorry. Please accept this 50% discount coupon.", uiColor: "#ef4444" };
+    return {
+      actionCode: "OFFER_COUPON",
+      uiMessage: "We are truly sorry. Please accept this 50% discount coupon.",
+      uiColor: "#ef4444"
+    };
   } else if (normalizedScore < 0.7) {
-    return { actionCode: "REQUEST_FEEDBACK", uiMessage: "Thank you! Could you tell us how we can improve?", uiColor: "#6b7280" };
+    return {
+      actionCode: "REQUEST_FEEDBACK",
+      uiMessage: "Thank you! Could you tell us how we can improve?",
+      uiColor: "#6b7280"
+    };
   } else {
-    return { actionCode: "ASK_REFERRAL", uiMessage: "Glad you liked it! Refer a friend and earn rewards.", uiColor: "#3b82f6" };
+    return {
+      actionCode: "ASK_REFERRAL",
+      uiMessage: "Glad you liked it! Refer a friend and earn rewards.",
+      uiColor: "#3b82f6"
+    };
   }
 }
 
@@ -18,6 +33,7 @@ function updateActionDOM(decision) {
   const box = document.getElementById("action-result");
   document.getElementById("action-code").textContent = decision.actionCode;
   document.getElementById("action-message").textContent = decision.uiMessage;
+
   box.style.display = "block";
   box.style.border = `1px solid ${decision.uiColor}`;
   box.style.color = decision.uiColor;
@@ -29,17 +45,40 @@ function showSentiment(label, score) {
   document.getElementById("sentiment-score").textContent = (score * 100).toFixed(1) + "%";
 }
 
-async function postToScript(body) {
-  const resp = await fetch(GOOGLE_SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+/**
+ * JSONP call to Apps Script (bypasses CORS).
+ * Apps Script must implement doGet with action=analyze/log and callback=...
+ */
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Math.random().toString(36).slice(2);
+    const url = new URL(GOOGLE_SCRIPT_URL);
+
+    url.searchParams.set("callback", cb);
+    for (const [k, v] of Object.entries(params)) {
+      url.searchParams.set(k, String(v));
+    }
+
+    const script = document.createElement("script");
+    script.src = url.toString();
+
+    window[cb] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("JSONP load failed"));
+    };
+
+    function cleanup() {
+      try { delete window[cb]; } catch (_) { window[cb] = undefined; }
+      script.remove();
+    }
+
+    document.body.appendChild(script);
   });
-  const text = await resp.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { raw: text }; }
-  if (!resp.ok || data.error) throw new Error(`Script error: ${JSON.stringify(data)}`);
-  return data;
 }
 
 document.getElementById("analyzeBtn").addEventListener("click", async () => {
@@ -47,8 +86,10 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
   if (!review) return;
 
   try {
-    // 1) Analyze via Apps Script (server-side call to HF, no CORS)
-    const res = await postToScript({ action: "analyze", review });
+    // 1) Analyze (server-side HF call, no CORS)
+    const res = await jsonp({ action: "analyze", review });
+
+    if (res && res.error) throw new Error(`Analyze error: ${JSON.stringify(res)}`);
 
     const label = res.label;
     const confidence = res.confidence;
@@ -59,8 +100,8 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     const decision = determineBusinessAction(confidence, label);
     updateActionDOM(decision);
 
-    // 3) Log to sheet via Apps Script
-    await postToScript({
+    // 3) Log to Google Sheet
+    const logRes = await jsonp({
       action: "log",
       ts_iso: new Date().toISOString(),
       review,
@@ -69,6 +110,8 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
       meta: JSON.stringify({ source: "github-pages" }),
       action_taken: decision.actionCode
     });
+
+    if (logRes && logRes.error) throw new Error(`Log error: ${JSON.stringify(logRes)}`);
 
   } catch (err) {
     console.error(err);
