@@ -1,6 +1,6 @@
 // 1) SET THESE TWO:
 const HF_TOKEN = "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";
-const GOOGLE_SCRIPT_URL = "";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjNGeNvlPJ9wxUg-vkDfck70b2eau3nVq9Wl75t9ypWKZ24yASKj4XyFElEeHcsg/exec";
 
 // Hugging Face sentiment model
 const HF_MODEL = "distilbert-base-uncased-finetuned-sst-2-english";
