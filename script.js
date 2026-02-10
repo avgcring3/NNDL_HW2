@@ -1,4 +1,4 @@
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxIczrG7BmT_K8SVb4HneZSRe8G3Fe38uN9mqHswNwGX1DRiRnjKPEjdOMw7ia89ks/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk5eRoL9vINa646JTpggyYSm4sGlrPoWOD00kLnJ3rS6LCFAcnziy4W07QNyIWgvc/exec";
 
 function determineBusinessAction(confidence, label) {
   let normalizedScore = 0.5;
