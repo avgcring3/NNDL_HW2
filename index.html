@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Decision System</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px;">
+  <h1>AI-Driven Decision System</h1>
+
+  <p>Paste a review:</p>
+  <textarea id="review" rows="5" style="width:100%; padding:10px;"></textarea>
+
+  <div style="margin-top: 10px;">
+    <button id="analyzeBtn" style="padding:10px 14px;">Analyze</button>
+  </div>
+
+  <div id="sentiment-result" style="margin-top:16px; display:none; padding:12px; border-radius:8px; border:1px solid #ddd;">
+    <div><b>Sentiment:</b> <span id="sentiment-label"></span></div>
+    <div><b>Confidence:</b> <span id="sentiment-score"></span></div>
+  </div>
+
+  <div id="action-result" style="display:none; padding:12px; border-radius:8px; margin-top:12px;">
+    <div id="action-code" style="font-weight:700;"></div>
+    <div id="action-message" style="margin-top:6px;"></div>
+  </div>
+
+  <p style="margin-top: 18px; color:#666;">
+    Setup required: Hugging Face token + Google Sheets Web App URL in script.js
+  </p>
+
+  <script src="script.js"></script>
+</body>
+</html>
